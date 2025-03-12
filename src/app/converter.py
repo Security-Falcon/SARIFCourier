@@ -1,35 +1,34 @@
 import markdown
+from datetime import datetime
 
 def convert(sarif_content):
     """Converts SARIF content into Markdown table format with descriptive emojis."""
     runs = sarif_content.get("runs", [])
     md_output = []
+    severity_emojis = {
+        "none": "NONE ⚪",
+        "note": "INFO",
+        "warning": "WARNING",
+        "error": "ERROR",
+    }
 
     md_output.append("# General SARIF Report 🛡️\n")
-    
-    md_output.append(">[!NOTE]")
-    md_output.append(">In case of combined SARIF reports are provided, each tool with have it's own Table.\n")
-
-    severity_emojis = {
-        "none": "None ⚪",
-        "note": "Note ℹ️",
-        "warning": "Warning ⚠️",
-        "error": "Error 🔥",
-    }
+    current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    md_output.append(f"This report was generated on: `{current_date}` \nIn case of combined SARIF reports are provided, each tool with have its own Table.\n")
 
     for run in runs:
         tool = run.get("tool", {}).get("driver", {}).get("name", "Unknown Tool")
         results = run.get("results", [])
 
-        md_output.append(f"### Origin: {tool}\n")
+        md_output.append(f"### Origin Tool: {tool}\n")
 
         if not results:
-            md_output.append("No issues found ✅🎉.\n")
+            md_output.append("No issues found - Keep it up ✅ 🎉.\n")
             continue
 
         # Add Markdown table header
-        md_output.append("| Rule-ID | Severity | Message | Location |")
-        md_output.append("|---------|----------|---------|----------|")
+        md_output.append("| Rule-ID | Severity | Message | Location | Line |")
+        md_output.append("|:---------|:---------|:---------|:---------|:--:|")
 
         for result in results:
             rule_id = result.get("ruleId", "Unknown Rule")
@@ -46,10 +45,10 @@ def convert(sarif_content):
                     file_uri = physical_location.get("artifactLocation", {}).get("uri", "Unknown File")
                     region = physical_location.get("region", {})
                     start_line = region.get("startLine", "Unknown Line")
-                    location_info += f"[`{file_uri}, Line {start_line}`]({file_uri})"
+                    location_info += f"[`{file_uri}`]({file_uri})"
 
-            md_output.append(f"| {rule_id} | {severity} | {message} | {location_info} |")
+            md_output.append(f"| {rule_id} | {severity} | {message} | {location_info} | {start_line} |")
 
-    md_output.append("------\n")
-    md_output.append("Markdown generated using SARIF-2-MD 🚀\n")
+
+    md_output.append(">Markdown generated using SARIF-2-MD 🚀\n")
     return "\n".join(md_output)

@@ -271,6 +271,159 @@
           "ruleIndex": 0
         }
       ]
+    },
+    {
+      "tool": {
+        "driver": {
+          "name": "KICS",
+          "informationUri": "https://kics.io",
+          "rules": [
+            {
+              "id": "KICS-001",
+              "shortDescription": {
+                "text": "Ensure no hard-coded secrets"
+              },
+              "helpUri": "https://kics.io/rules/KICS-001",
+              "properties": {
+                "category": "Security"
+              }
+            }
+          ]
+        }
+      },
+      "artifacts": [
+        {
+          "location": {
+            "uri": "file:///C:/dev/sarif/sarif-tutorials/samples/Introduction/kics-example.tf"
+          }
+        }
+      ],
+      "results": [
+        {
+          "level": "error",
+          "message": {
+            "text": "Hard-coded secret found in Terraform file."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file:///C:/dev/sarif/sarif-tutorials/samples/Introduction/kics-example.tf",
+                  "index": 0
+                },
+                "region": {
+                  "startLine": 10,
+                  "startColumn": 15
+                }
+              }
+            }
+          ],
+          "ruleId": "KICS-001",
+          "ruleIndex": 0
+        }
+      ]
+    },
+    {
+      "tool": {
+        "driver": {
+          "name": "Blackduck",
+          "informationUri": "https://blackducksoftware.com",
+          "rules": [
+            {
+              "id": "BD-001",
+              "shortDescription": {
+                "text": "Vulnerability in open source component"
+              },
+              "helpUri": "https://blackducksoftware.com/rules/BD-001",
+              "properties": {
+                "category": "Vulnerability"
+              }
+            }
+          ]
+        }
+      },
+      "artifacts": [
+        {
+          "location": {
+            "uri": "file:///C:/dev/sarif/sarif-tutorials/samples/Introduction/blackduck-example.js"
+          }
+        }
+      ],
+      "results": [
+        {
+          "level": "warning",
+          "message": {
+            "text": "Vulnerability found in open source component."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file:///C:/dev/sarif/sarif-tutorials/samples/Introduction/blackduck-example.js",
+                  "index": 0
+                },
+                "region": {
+                  "startLine": 20,
+                  "startColumn": 5
+                }
+              }
+            }
+          ],
+          "ruleId": "BD-001",
+          "ruleIndex": 0
+        }
+      ]
+    },
+    {
+      "tool": {
+        "driver": {
+          "name": "Trivy",
+          "informationUri": "https://aquasecurity.github.io/trivy/",
+          "rules": [
+            {
+              "id": "TRIVY-001",
+              "shortDescription": {
+                "text": "Vulnerability in container image"
+              },
+              "helpUri": "https://aquasecurity.github.io/trivy/v0.18.3/vulnerability/examples/",
+              "properties": {
+                "category": "Vulnerability"
+              }
+            }
+          ]
+        }
+      },
+      "artifacts": [
+        {
+          "location": {
+            "uri": "file:///C:/dev/sarif/sarif-tutorials/samples/Introduction/trivy-example-image"
+          }
+        }
+      ],
+      "results": [
+        {
+          "level": "error",
+          "message": {
+            "text": "Critical vulnerability found in container image."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file:///C:/dev/sarif/sarif-tutorials/samples/Introduction/trivy-example-image",
+                  "index": 0
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1
+                }
+              }
+            }
+          ],
+          "ruleId": "TRIVY-001",
+          "ruleIndex": 0
+        }
+      ]
     }
   ]
 }

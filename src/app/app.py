@@ -17,7 +17,7 @@ def main():
     input_sarif_path = os.path.abspath(args.sarif_input)
     if not input_sarif_path.startswith(os.getcwd()):
         raise ValueError("Invalid input file path")
-    output_md_name = args.output_file_name if args.output_file_name else 'sarif-2-md-output.md'
+    output_md_name = f"{args.output_file_name}.md" if args.output_file_name else 'sarif-2-md-output.md'
    
     content = load_file(input_sarif_path)
     validate_sarif(content)
