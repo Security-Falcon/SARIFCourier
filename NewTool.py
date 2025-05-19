@@ -1,5 +1,5 @@
 # CLI Tool: SARIFCourier
-# Purpose: Parses SARIF reports and posts security findings as PR comments on GitHub, pinned to specific lines
+# Purpose: Parses SARIF reports and posts security findings as PR comments on GitHub, pinned to specific lines or outputs them locally as markdown
 
 import argparse
 import json
@@ -26,6 +26,7 @@ Features:
 - Extracts security findings
 - Comments inline on GitHub PR diffs at specific file & line
 - Posts summary comment with all findings
+- Outputs local markdown reports when --local flag is used
 - Uses environment variables for GitHub token and API URL
 '''
 
@@ -33,12 +34,13 @@ Features:
 GITHUB_API = os.getenv("GITHUB_API", "https://api.github.com")
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Post SARIF security findings as GitHub PR comments.")
+    parser = argparse.ArgumentParser(description="Post SARIF security findings as GitHub PR comments or output locally.")
     parser.add_argument("--sarif", required=True, help="Path to SARIF report")
-    parser.add_argument("--repo", required=True, help="GitHub repository in the format owner/repo")
-    parser.add_argument("--pr", required=True, type=int, help="Pull request number")
+    parser.add_argument("--repo", required=False, help="GitHub repository in the format owner/repo")
+    parser.add_argument("--pr", required=False, type=int, help="Pull request number")
     parser.add_argument("--token", required=False, help="GitHub token (use GITHUB_TOKEN env variable instead)")
     parser.add_argument("--schema", required=False, default="sarif-schema-2.1.0.json", help="Path to SARIF JSON Schema")
+    parser.add_argument("--local", action="store_true", help="Output markdown summary locally instead of posting to GitHub")
     return parser.parse_args()
 
 def load_sarif(sarif_path: str) -> Dict:
@@ -119,21 +121,28 @@ def post_summary_comment(repo: str, pr_number: int, token: str, body: str):
 def main():
     print(BANNER)
     args = parse_args()
-    token = os.getenv("GITHUB_TOKEN")
-    if not token:
-        print("GitHub token is required. Set `GITHUB_TOKEN` environment variable.")
-        return
-
     sarif_data = load_sarif(args.sarif)
     validate_sarif(sarif_data, args.schema)
     findings = extract_findings(sarif_data)
 
     if not findings:
-        print("No findings to post.")
+        print("No findings to process.")
         return
 
     comment_body = format_summary_comment(findings)
-    post_summary_comment(args.repo, args.pr, token, comment_body)
+
+    if args.local:
+        print("\n--- LOCAL MARKDOWN REPORT ---\n")
+        print(comment_body)
+    else:
+        token = os.getenv("GITHUB_TOKEN")
+        if not token:
+            print("GitHub token is required. Set `GITHUB_TOKEN` environment variable.")
+            return
+        if not args.repo or not args.pr:
+            print("Both --repo and --pr must be specified for posting to GitHub.")
+            return
+        post_summary_comment(args.repo, args.pr, token, comment_body)
 
 if __name__ == "__main__":
     main()
