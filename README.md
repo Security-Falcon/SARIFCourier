@@ -1,4 +1,4 @@
-# SARIF2MD
+# SARIFCourier
 Convert a SARIF Report to Markdown so it can be posted to Pull Request or Issues.
 
 **SARIF2MD** is a lightweight, Python-based tool designed to convert SARIF (Static Analysis Results Interchange Format) security reports into clean, readable Markdown documents. With SARIF2MD, you can seamlessly transform complex SARIF reports into Markdown files suitable for GitHub Issues or Pull Request comments, making it easier to collaborate and address security concerns.
@@ -100,23 +100,8 @@ steps:
 
 ### Sample Markdown Report:
 
-```
-# SARIF Report
+<img width="674" alt="image" src="https://github.com/user-attachments/assets/b3f6548d-6312-4f34-8415-cbec517b11d7" />
 
-## Tool: CodeScanner
-
-### Rule: CA1001
-**Severity**: Error
-**Message**: Class without a finalizer.
-**Location**:
-File: src/main.cpp, Line: 42
-
-### Rule: CA2000
-**Severity**: Warning
-**Message**: Dispose objects correctly.
-**Location**:
-File: src/utils.cpp, Line: 87
-```
 
 ---
 
