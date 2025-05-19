@@ -11,17 +11,26 @@ def extract_findings(sarif: Dict) -> List[Dict]:
         "note": f'<img src="{icon_content_host}/low.svg" alt="note" width="24" />'
     }
     rule_descriptions = {}
+    remediation_map = {}
     for run in sarif.get("runs", []):
         rules = run.get("tool", {}).get("driver", {}).get("rules", [])
         for rule in rules:
             rule_id = rule.get("id", "")
             description = rule.get("fullDescription", {}).get("text", "")
             rule_descriptions[rule_id] = description
+            # Remediation tips
+            remediation = ""
+            if "help" in rule and rule["help"].get("text"):
+                remediation = rule["help"]["text"]
+            elif "help" in rule and rule["help"].get("markdown"):
+                remediation = rule["help"]["markdown"]
+            remediation_map[rule_id] = remediation
         for result in run.get("results", []):
             message = result.get("message", {}).get("text", "")
             level = result.get("level", "warning")
             rule_id = result.get("ruleId", "")
             rule_description = rule_descriptions.get(rule_id, "")
+            remediation = remediation_map.get(rule_id, "")
             for loc in result.get("locations", []):
                 phys_loc = loc.get("physicalLocation", {})
                 artifact_loc = phys_loc.get("artifactLocation", {}).get("uri", "")
@@ -34,6 +43,7 @@ def extract_findings(sarif: Dict) -> List[Dict]:
                     "rule_id": rule_id,
                     "message_text": message,
                     "rule_description": rule_description,
+                    "remediation": remediation,
                     "level": level.lower()
                 })
     return findings
@@ -53,11 +63,13 @@ def format_summary_comment(findings: List[Dict], sarif_data: Dict = None) -> str
     legend = """
 <details>
 <summary><strong>Legend: Severity Levels</strong></summary>
+
 | Icon | Severity |
 |:------:|----------|
 | <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/critical.svg\" alt=\"error\" width=\"18\" /> | CRITICAL / HIGH   |
 | <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/medium.svg\" alt=\"warning\" width=\"18\" /> | MEDIUM |
 | <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/low.svg\" alt=\"note\" width=\"18\" /> | LOW    |
+
 </details>
 """
     header = (
