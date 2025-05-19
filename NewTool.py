@@ -27,6 +27,7 @@ Features:
 - Comments inline on GitHub PR diffs at specific file & line
 - Posts summary comment with all findings
 - Outputs local markdown reports when --local flag is used
+- Saves local markdown to _md_report.md file
 - Uses environment variables for GitHub token and API URL
 '''
 
@@ -67,11 +68,20 @@ def extract_findings(sarif: Dict) -> List[Dict]:
         "warning": "⚠️ WARNING",
         "note": "ℹ️ NOTE"
     }
+
+    rule_descriptions = {}
     for run in sarif.get("runs", []):
+        rules = run.get("tool", {}).get("driver", {}).get("rules", [])
+        for rule in rules:
+            rule_id = rule.get("id", "")
+            description = rule.get("fullDescription", {}).get("text", "")
+            rule_descriptions[rule_id] = description
+
         for result in run.get("results", []):
             message = result.get("message", {}).get("text", "")
             level = result.get("level", "warning")
             rule_id = result.get("ruleId", "")
+            rule_description = rule_descriptions.get(rule_id, "")
             for loc in result.get("locations", []):
                 phys_loc = loc.get("physicalLocation", {})
                 artifact_loc = phys_loc.get("artifactLocation", {}).get("uri", "")
@@ -83,6 +93,7 @@ def extract_findings(sarif: Dict) -> List[Dict]:
                     "severity": icon_map.get(level.lower(), level.upper()),
                     "rule_id": rule_id,
                     "message_text": message,
+                    "rule_description": rule_description,
                     "level": level.lower()
                 })
     return findings
@@ -95,12 +106,12 @@ def format_summary_comment(findings: List[Dict]) -> str:
     branch_name = os.getenv("HEAD_REF", "main")
 
     header = "### 🔐 SARIFCourier Security Findings Summary\n\n"
-    table_header = "|  | File | Line | Rule ID | Message |\n|--|------|------|---------|---------|\n"
+    table_header = "|  | File | Line | Rule ID | Message | Description |\n|--|------|------|---------|---------|-------------|\n"
     rows = []
     for level in ["error", "warning", "note"]:
         for f in grouped.get(level, []):
             file_link = f"[{f['file']}](../blob/{branch_name}/{f['file']}#L{f['line']})"
-            rows.append(f"| {f['severity']} | {file_link} | {f['line']} | {f['rule_id']} | {f['message_text']} |")
+            rows.append(f"| {f['severity']} | {file_link} | {f['line']} | {f['rule_id']} | {f['message_text']} | {f['rule_description']} |")
 
     summary = f"---\n\n📌 **Total Findings:** {len(findings)}  \n🛡️ Posted by **SARIFCourier** — Delivering security insights to your developers."
     return header + table_header + "\n".join(rows) + "\n\n" + summary
@@ -118,6 +129,13 @@ def post_summary_comment(repo: str, pr_number: int, token: str, body: str):
     else:
         print("✅ Summary comment posted successfully.")
 
+def save_local_report(sarif_path: str, markdown: str):
+    base_name = os.path.splitext(sarif_path)[0]
+    output_path = f"{base_name}_md_report.md"
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(markdown)
+    print(f"✅ Markdown report saved to: {output_path}")
+
 def main():
     print(BANNER)
     args = parse_args()
@@ -134,6 +152,7 @@ def main():
     if args.local:
         print("\n--- LOCAL MARKDOWN REPORT ---\n")
         print(comment_body)
+        save_local_report(args.sarif, comment_body)
     else:
         token = os.getenv("GITHUB_TOKEN")
         if not token:
