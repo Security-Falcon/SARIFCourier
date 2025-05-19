@@ -11,14 +11,17 @@ from collections import defaultdict
 
 # Banner
 BANNER = r'''
-   _____             _ _____                            _                     
-  / ____|           | |  __ \                          | |                    
- | (___  _ __   __ _| | |__) |___  ___ _ __   ___  _ __| |_ ___  ___          
-  \___ \| '_ \ / _` | |  _  // _ \/ _ \ '_ \ / _ \| '__| __/ _ \/ __|     
-  ____) | | | | (_| | | | \ \  __/  __/ | | | (_) | |  | ||  __/\__ \     
- |_____/|_| |_|\__,_|_|_|  \_\___|\___|_| |_|\___/|_|   \__\___||___/ 
-                                                                              
-        SARIFCourier - Delivering SARIF Findings to GitHub Pull Requests       
+ _______  _______  _______ _________ _______    _______  _______           _______ _________ _______  _______ 
+(  ____ \(  ___  )(  ____ )\__   __/(  ____ \  (  ____ \(  ___  )|\     /|(  ____ )\__   __/(  ____ \(  ____ )
+| (    \/| (   ) || (    )|   ) (   | (    \/  | (    \/| (   ) || )   ( || (    )|   ) (   | (    \/| (    )|
+| (_____ | (___) || (____)|   | |   | (__      | |      | |   | || |   | || (____)|   | |   | (__    | (____)|
+(_____  )|  ___  ||     __)   | |   |  __)     | |      | |   | || |   | ||     __)   | |   |  __)   |     __)
+      ) || (   ) || (\ (      | |   | (        | |      | |   | || |   | || (\ (      | |   | (      | (\ (   
+/\____) || )   ( || ) \ \_____) (___| )        | (____/\| (___) || (___) || ) \ \_____) (___| (____/\| ) \ \__
+\_______)|/     \||/   \__/\_______/|/         (_______/(_______)(_______)|/   \__/\_______/(_______/|/   \__/
+                                                                                                                                                                                  
+        SARIFCourier - Delivering SARIF Findings to GitHub Pull Requests
+        By Abdullah Schahin      
 ------------------------------------------------------------------------------
 Features:
 - Parses SARIF v2.1.0 reports
@@ -40,7 +43,7 @@ def parse_args():
     parser.add_argument("--repo", required=False, help="GitHub repository in the format owner/repo")
     parser.add_argument("--pr", required=False, type=int, help="Pull request number")
     parser.add_argument("--token", required=False, help="GitHub token (use GITHUB_TOKEN env variable instead)")
-    parser.add_argument("--schema", required=False, default="sarif-schema-2.1.0.json", help="Path to SARIF JSON Schema")
+    parser.add_argument("--schema", required=False, default="src/schema/sarif-schema-2.1.0.json", help="Path to SARIF JSON Schema")
     parser.add_argument("--local", action="store_true", help="Output markdown summary locally instead of posting to GitHub")
     return parser.parse_args()
 
@@ -63,10 +66,12 @@ def validate_sarif(data: Dict, schema_path: str):
 
 def extract_findings(sarif: Dict) -> List[Dict]:
     findings = []
+    # Use SVG icons from src/app/assets for each level
+    icon_content_host = "https://raw.githubusercontent.com/Abdullah-Schahin/icons/refs/heads/main"
     icon_map = {
-        "error": "❗ ERROR",
-        "warning": "⚠️ WARNING",
-        "note": "ℹ️ NOTE"
+        "error": f'<img src="{icon_content_host}/critical.svg" alt="error" width="24" />',
+        "warning": f'<img src="{icon_content_host}/medium.svg" alt="warning" width="24" />',
+        "note": f'<img src="{icon_content_host}/low.svg" alt="note" width="24" />'
     }
 
     rule_descriptions = {}
@@ -98,23 +103,59 @@ def extract_findings(sarif: Dict) -> List[Dict]:
                 })
     return findings
 
-def format_summary_comment(findings: List[Dict]) -> str:
+def format_summary_comment(findings: List[Dict], sarif_data: Dict = None) -> str:
     grouped = defaultdict(list)
     for f in findings:
         grouped[f['level']].append(f)
 
     branch_name = os.getenv("HEAD_REF", "main")
 
-    header = "### 🔐 SARIFCourier Security Findings Summary\n\n"
-    table_header = "|  | File | Line | Rule ID | Message | Description |\n|--|------|------|---------|---------|-------------|\n"
+    # Get driver name from SARIF if provided
+    driver_name = "Unknown Tool"
+    if sarif_data:
+        try:
+            driver_name = sarif_data["runs"][0]["tool"]["driver"]["name"]
+        except Exception:
+            pass
+
+    total_findings = len(findings)
+
+    # Legend for severity icons in an expandable section
+    legend = """
+<details>
+<summary><strong>Legend: Severity Levels</strong></summary>
+
+| Icon | Severity |
+|:------:|----------|
+| <img src="https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/critical.svg" alt="error" width="18" /> | CRITICAL / HIGH   |
+| <img src="https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/medium.svg" alt="warning" width="18" /> | MEDIUM |
+| <img src="https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/low.svg" alt="note" width="18" /> | LOW    |
+
+</details>
+"""
+
+    header = (
+        "# 🛡️ Security Findings Summary 🛡️\n"
+        "<details>\n"
+        "<summary><strong>Details</strong></summary>\n\n"
+        f"- Scanner: `{driver_name}`\n"
+        f"- Total Findings: `{total_findings}`\n"
+        "- Source: SARIF\n"
+        "</details>\n\n"
+        f"{legend}\n"
+    )
+    table_header = "| Severity | Location | Rule ID | Message |\n|:--:|---------|---------|---------|\n"
     rows = []
     for level in ["error", "warning", "note"]:
         for f in grouped.get(level, []):
-            file_link = f"[{f['file']}](../blob/{branch_name}/{f['file']}#L{f['line']})"
-            rows.append(f"| {f['severity']} | {file_link} | {f['line']} | {f['rule_id']} | {f['message_text']} | {f['rule_description']} |")
+            filename = os.path.basename(f['file'])
+            location_label = f"{filename}#L{f['line']}"
+            location_link = f"[{location_label}](../blob/{branch_name}/{f['file']}#L{f['line']})"
+            severity_cell = f['severity']
+            rows.append(f"| {severity_cell} | {location_link} | {f['rule_id']} | {f['message_text']} |")
 
-    summary = f"---\n\n📌 **Total Findings:** {len(findings)}  \n🛡️ Posted by **SARIFCourier** — Delivering security insights to your developers."
-    return header + table_header + "\n".join(rows) + "\n\n" + summary
+    banner = f"---\n\n>**_SARIFCourier_** by [Abdullah Schahin](https://github.com/Security-Falcon) — Delivering security insights to your developers."
+    return header + table_header + "\n".join(rows) + "\n\n" + banner
 
 def post_summary_comment(repo: str, pr_number: int, token: str, body: str):
     url = f"{GITHUB_API}/repos/{repo}/issues/{pr_number}/comments"
@@ -147,7 +188,7 @@ def main():
         print("No findings to process.")
         return
 
-    comment_body = format_summary_comment(findings)
+    comment_body = format_summary_comment(findings, sarif_data)
 
     if args.local:
         print("\n--- LOCAL MARKDOWN REPORT ---\n")
