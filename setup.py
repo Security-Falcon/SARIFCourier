@@ -23,7 +23,7 @@ setup(
     python_requires=">=3.9",
     entry_points={
         "console_scripts": [
-            "sc=app:main",
+            "sc=main:main",
         ],
     },
 

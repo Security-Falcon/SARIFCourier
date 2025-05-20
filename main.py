@@ -6,19 +6,22 @@ from jsonschema import validate, ValidationError
 from collections import defaultdict
 from typing import List, Dict
 import requests
+from colorama import Fore, Style, init
+import logging
+import sys
+import traceback
 
 # --- Banner ---
 def print_banner():
-    print("""
- _______  _______  _______ _________ _______    _______  _______           _______ _________ _______  _______ 
-(  ____ \\  ___  )(  ____ )\__   __/(  ____ \\  (  ____ \\(  ___  )|\     /|(  ____ )\__   __/(  ____ \\(  ____ )
-| (    \/| (   ) || (    )|   ) (   | (    \/  | (    \/| (   ) || )   ( || (    )|   ) (   | (    \/| (    )|
-| (_____ | (___) || (____)|   | |   | (__      | |      | |   | || |   | || (____)|   | |   | (__    | (____)|
-(_____  )|  ___  ||     __)   | |   |  __)     | |      | |   | || |   | ||     __)   | |   |  __)   |     __)
-      ) || (   ) || (\ (      | |   | (        | |      | |   | || |   | || (\ (      | |   | (      | (\ (   
-/\____) || )   ( || ) \ \_____) (___| )        | (____/\| (___) || (___) || ) \ \_____) (___| (____/\| ) \ \__
-\_______)|/     \||/   \__/\_______/|/         (_______/(_______)(_______)|/   \__/\_______/(_______/|/   \__/                                                  
-    """ + "\nSARIFCourier - By Abdullah Schahin\n\n")
+    banner = """
+███████╗ █████╗ ██████╗ ██╗███████╗     ██████╗ ██████╗ ██╗   ██╗██████╗ ██╗███████╗██████╗ 
+██╔════╝██╔══██╗██╔══██╗██║██╔════╝    ██╔════╝██╔═══██╗██║   ██║██╔══██╗██║██╔════╝██╔══██╗
+███████╗███████║██████╔╝██║█████╗      ██║     ██║   ██║██║   ██║██████╔╝██║█████╗  ██████╔╝
+╚════██║██╔══██║██╔══██╗██║██╔══╝      ██║     ██║   ██║██║   ██║██╔══██╗██║╚═╝  ██╔══██╗
+███████║██║  ██║██║  ██║██║██║         ╚██████╗╚██████╔╝╚██████╔╝██║  ██║██║███████╗██║  ██║
+╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝          ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝╚══════╝╚═╝  ╚═╝                                                 
+    """
+    print(Fore.BLUE + banner + "\n" + Fore.RED + "SARIFCourier 🛡️  By Abdullah Schahin" + "\n\n" + Fore.WHITE)
 
 # --- Utility Functions ---
 def load_json_file(file_path: str):
@@ -29,14 +32,14 @@ def load_json_file(file_path: str):
         return json.load(f)
 
 def load_schema():
-    return load_json_file("src/sarif-schema-2.1.0.json")
+    return load_json_file("sarif-schema-2.1.0.json")
 
 # --- SARIF Validation ---
 def validate_sarif(sarif_content):
     try:
         schema = load_schema()
         validate(instance=sarif_content, schema=schema)
-        print("Successfully Validated Input against OASIS Schema ✅")
+        print("✅: Successfully Validated Input against OASIS Schema.")
     except ValidationError as e:
         raise ValueError(f"Invalid SARIF file: {e.message}")
 
@@ -79,12 +82,15 @@ def format_summary_comment(findings: list, sarif_data: dict = None) -> str:
     driver = sarif_data.get("runs", [{}])[0].get("tool", {}).get("driver", {}).get("name", "Unknown Tool") if sarif_data else "Unknown Tool"
     legend = """
 <details>
+
 <summary><strong>Legend: Severity Levels</strong></summary>
+
 | Icon | Severity |
 |:------:|----------|
 | <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/critical.svg\" alt=\"error\" width=\"18\" /> | CRITICAL / HIGH   |
 | <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/medium.svg\" alt=\"warning\" width=\"18\" /> | MEDIUM |
 | <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/low.svg\" alt=\"note\" width=\"18\" /> | LOW    |
+
 </details>
 """
     header = (
@@ -139,6 +145,7 @@ class GitHubPRCommenter:
 
 # --- Main Entrypoint ---
 def main():
+    init(autoreset=True)
     print_banner()
     parser = argparse.ArgumentParser(description='Makes your SARIF reports more readable')
     parser.add_argument('--sarif', required=True, help='Path to SARIF report')
@@ -146,20 +153,27 @@ def main():
     parser.add_argument('--output-file-name', '-ofn', required=False, help='Name of output Markdown file. Default: sarif-2-md-output.md')
     args = parser.parse_args()
 
-    sarif_path = os.path.abspath(args.sarif)
-    sarif_data = load_json_file(sarif_path)
-    validate_sarif(sarif_data)
-    md_content = convert(sarif_data)
+    try:
+        sarif_path = os.path.abspath(args.sarif)
+        sarif_data = load_json_file(sarif_path)
+        validate_sarif(sarif_data)
+        md_content = convert(sarif_data)
 
-    if args.local:
-        output_md_name = f"{args.output_file_name}.md" if args.output_file_name else 'sarif-2-md-output.md'
-        output_md_path = os.path.join(os.path.dirname(sarif_path), output_md_name)
-        with open(output_md_path, 'w', encoding='utf-8') as output_file:
-            output_file.write(md_content)
-        print(f"✅ Markdown content was written to {output_md_path}")
-    else:
-        GitHubPRCommenter().post_comment(md_content)
-        print("✅ SARIF Report was posted as a PR comment on GitHub.")
+        if args.local:
+            output_md_name = f"{args.output_file_name}.md" if args.output_file_name else 'sarif-2-md-output.md'
+            output_md_path = os.path.join(os.path.dirname(sarif_path), output_md_name)
+            with open(output_md_path, 'w', encoding='utf-8') as output_file:
+                output_file.write(md_content)
+            print(f"✅: Markdown content was written to {output_md_path}")
+        else:
+            GitHubPRCommenter().post_comment(md_content)
+            print("✅: SARIF Report was posted as a PR comment on GitHub.")
+    except Exception as e:
+        logging.error(Fore.RED + f"❌ Error: {e}")
+        print(Fore.RED + f"❌ Error: {e}")
+        print(Fore.YELLOW + "\n--- Stack Trace ---")
+        traceback.print_exc(file=sys.stdout)
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
