@@ -2,10 +2,11 @@
   "name": "sarifcourier",
   "version": "1.0.0",
   "description": "Convert a SARIF Report to Markdown so it can be posted to Pull Request or Issues.",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "start": "ts-node src/main.ts",
+    "pack": "ncc build ./src/index.ts --out dist --license licenses.txt",
+    "build": "ncc build ./src/index.ts --out dist --source-map",
+    "lint:tsc": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -27,10 +28,11 @@
     "chalk": "^5.4.1",
     "dotenv": "^16.5.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@types/yargs": "^17.0.33"
+    "@types/yargs": "^17.0.33",
+    "@vercel/ncc": "^0.38.3",
+    "typescript": "^5.8.3"
   }
 }
