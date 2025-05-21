@@ -1,4 +1,3 @@
-// src/githubPRCommenter.ts
 import axios from 'axios';
 
 export class GitHubPRCommenter {
@@ -30,7 +29,34 @@ export class GitHubPRCommenter {
     };
   }
 
-  async postComment(body: string): Promise<any> {
+  async postComment(body: string, driverName?: string): Promise<any> {
+    // If driverName is provided, try to find and update an existing comment for that driver
+    if (driverName) {
+      const commentsUrl = `${this.host}/repos/${this.repo}/issues/${this.prNumber}/comments`;
+      const commentsResp = await axios.get(commentsUrl, { headers: this.headers });
+      if (commentsResp.status === 200 && Array.isArray(commentsResp.data)) {
+        const marker = `<!-- SARIFCourier:${driverName} -->`;
+        const existing = commentsResp.data.find((c: any) => typeof c.body === 'string' && c.body.includes(marker));
+        const commentBody = `${marker}\n${body}`;
+        if (existing) {
+          // Update existing comment
+          const updateUrl = `${this.host}/repos/${this.repo}/issues/comments/${existing.id}`;
+          const updateResp = await axios.patch(updateUrl, { body: commentBody }, { headers: this.headers });
+          if (updateResp.status !== 200) {
+            throw new Error(`Failed to update comment: ${updateResp.status} ${updateResp.statusText}`);
+          }
+          return updateResp.data;
+        } else {
+          // Post new comment
+          const createResp = await axios.post(commentsUrl, { body: commentBody }, { headers: this.headers });
+          if (createResp.status !== 201) {
+            throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
+          }
+          return createResp.data;
+        }
+      }
+    }
+    // Fallback: just post a new comment
     const url = `${this.host}/repos/${this.repo}/issues/${this.prNumber}/comments`;
     const response = await axios.post(url, { body }, { headers: this.headers });
     if (response.status !== 201) {
