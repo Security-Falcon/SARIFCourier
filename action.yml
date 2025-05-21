@@ -17,8 +17,5 @@ outputs:
     description: 'Result of the SARIF processing.'
 
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
-  args:
-    - '--sarif'
-    - '${{ inputs.sarif_file }}'
+  using: 'node20'
+  main: 'dist/main.js'

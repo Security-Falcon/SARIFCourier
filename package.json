@@ -1,0 +1,36 @@
+{
+  "name": "sarifcourier",
+  "version": "1.0.0",
+  "description": "Convert a SARIF Report to Markdown so it can be posted to Pull Request or Issues.",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/main.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Abdullah-Schahin/SARIFCourier.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Abdullah-Schahin/SARIFCourier/issues"
+  },
+  "homepage": "https://github.com/Abdullah-Schahin/SARIFCourier#readme",
+  "dependencies": {
+    "@types/node": "^22.15.21",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "axios": "^1.9.0",
+    "chalk": "^5.4.1",
+    "dotenv": "^16.5.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@types/yargs": "^17.0.33"
+  }
+}
