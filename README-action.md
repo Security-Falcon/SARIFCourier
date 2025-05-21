@@ -27,6 +27,11 @@ Add the following step to your workflow after generating a SARIF report:
     sarif_file: path/to/your-report.sarif
 ```
 
+#### Output on PR
+![image](https://github.com/user-attachments/assets/395920ca-f6e8-4ff1-9ccf-bb4dfda51ce1)
+
+
+
 - `sarif_file` (**required**): Path to the SARIF file to process (relative to the workspace).
 
 ### Example Workflow
