@@ -12059,12 +12059,15 @@ function formatSummaryComment(findings, sarifData) {
     const driver = ((_d = (_c = (_b = (_a = sarifData === null || sarifData === void 0 ? void 0 : sarifData.runs) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.tool) === null || _c === void 0 ? void 0 : _c.driver) === null || _d === void 0 ? void 0 : _d.name) || 'Unknown Tool';
     const legend = `
 <details>
+
 <summary><strong>Legend: Severity Levels</strong></summary>
+
 | Icon | Severity |
 |:------:|----------|
 | <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/critical.svg\" alt=\"error\" width=\"18\" /> | CRITICAL / HIGH   |
 | <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/medium.svg\" alt=\"warning\" width=\"18\" /> | MEDIUM |
 | <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/low.svg\" alt=\"note\" width=\"18\" /> | LOW    |
+
 </details>
 `;
     const header = `# 🛡️ Security Findings Summary 🛡️\n` +
@@ -12121,7 +12124,35 @@ class GitHubPRCommenter {
             Accept: 'application/vnd.github.v3+json',
         };
     }
-    async postComment(body) {
+    async postComment(body, driverName) {
+        // If driverName is provided, try to find and update an existing comment for that driver
+        if (driverName) {
+            const commentsUrl = `${this.host}/repos/${this.repo}/issues/${this.prNumber}/comments`;
+            const commentsResp = await axios_1.default.get(commentsUrl, { headers: this.headers });
+            if (commentsResp.status === 200 && Array.isArray(commentsResp.data)) {
+                const marker = `<!-- SARIFCourier:${driverName} -->`;
+                const existing = commentsResp.data.find((c) => typeof c.body === 'string' && c.body.includes(marker));
+                const commentBody = `${marker}\n${body}`;
+                if (existing) {
+                    // Update existing comment
+                    const updateUrl = `${this.host}/repos/${this.repo}/issues/comments/${existing.id}`;
+                    const updateResp = await axios_1.default.patch(updateUrl, { body: commentBody }, { headers: this.headers });
+                    if (updateResp.status !== 200) {
+                        throw new Error(`Failed to update comment: ${updateResp.status} ${updateResp.statusText}`);
+                    }
+                    return updateResp.data;
+                }
+                else {
+                    // Post new comment
+                    const createResp = await axios_1.default.post(commentsUrl, { body: commentBody }, { headers: this.headers });
+                    if (createResp.status !== 201) {
+                        throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
+                    }
+                    return createResp.data;
+                }
+            }
+        }
+        // Fallback: just post a new comment
         const url = `${this.host}/repos/${this.repo}/issues/${this.prNumber}/comments`;
         const response = await axios_1.default.post(url, { body }, { headers: this.headers });
         if (response.status !== 201) {
@@ -12156,6 +12187,7 @@ const validateSarif_1 = __nccwpck_require__(828);
 const convert_1 = __nccwpck_require__(4568);
 const githubPRCommenter_1 = __nccwpck_require__(8258);
 async function main() {
+    var _a, _b, _c;
     (0, banner_1.printBanner)();
     const argv = (0, yargs_1.default)((0, helpers_1.hideBin)(process.argv))
         .option('sarif', { type: 'string', demandOption: true, describe: 'Path to SARIF report' })
@@ -12175,7 +12207,12 @@ async function main() {
             console.log(chalk_1.default.green(`✅: Markdown content was written to ${outputMdPath}`));
         }
         else {
-            await new githubPRCommenter_1.GitHubPRCommenter().postComment(mdContent);
+            // Try to extract driver name for unique comment marker
+            let driverName = undefined;
+            if (sarifData && Array.isArray(sarifData.runs) && ((_c = (_b = (_a = sarifData.runs[0]) === null || _a === void 0 ? void 0 : _a.tool) === null || _b === void 0 ? void 0 : _b.driver) === null || _c === void 0 ? void 0 : _c.name)) {
+                driverName = sarifData.runs[0].tool.driver.name;
+            }
+            await new githubPRCommenter_1.GitHubPRCommenter().postComment(mdContent, driverName);
             console.log(chalk_1.default.green('✅: SARIF Report was posted as a PR comment on GitHub.'));
         }
     }
