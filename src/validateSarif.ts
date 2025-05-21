@@ -9,7 +9,11 @@ export function validateSarif(sarifContent: any): void {
   addFormats(ajv); // Add support for formats like "uri"
   const validate = ajv.compile(schema);
   if (!validate(sarifContent)) {
-    throw new Error('Invalid SARIF file: ' + (validate.errors?.[0]?.message || 'Unknown error'));
+    if (validate.errors?.[0]?.message?.includes('must be array')) {
+      throw new Error('Invalid SARIF file: The runs or results property must be an array.');
+    } else {
+      throw new Error('Invalid SARIF file: ' + (validate.errors?.[0]?.message || 'Unknown error'));
+    }
   }
   console.log('✅: Successfully Validated Input against OASIS Schema.');
 }

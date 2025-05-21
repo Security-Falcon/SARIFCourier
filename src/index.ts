@@ -23,11 +23,6 @@ async function main() {
     const sarifPath = path.resolve(argv.sarif);
     const sarifData = loadJsonFile(sarifPath);
     validateSarif(sarifData);
-    // Check if SARIF results are empty
-    if (!sarifData.runs || !sarifData.runs.length || !sarifData.runs.some((run: any) => run.results && run.results.length > 0)) {
-      console.log(chalk.yellow('✅: Nothing to post. SARIF results are empty.'));
-      process.exit(0);
-    }
     const mdContent = convert(sarifData);
 
     if (argv.local) {
