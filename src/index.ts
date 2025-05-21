@@ -42,4 +42,16 @@ async function main() {
   }
 }
 
-main();
+async function runAction() {
+  // GitHub Actions passes inputs as environment variables: INPUT_<input_name>
+  const sarifFile = process.env['INPUT_SARIF_FILE'] || '';
+  if (!sarifFile) {
+    console.error('❌ Error: Missing required input: sarif_file');
+    process.exit(1);
+  }
+  // Simulate CLI args for yargs
+  process.argv.push('--sarif', sarifFile);
+  await main();
+}
+
+runAction();
