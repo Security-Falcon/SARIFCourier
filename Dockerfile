@@ -1,30 +1,24 @@
-# ----------------------
-# Stage 1: Build Layer
-# ----------------------
-FROM python:alpine AS builder
+# --- Stage 1: Builder ---
+FROM python:3.11-slim as builder
 
 WORKDIR /app
 
-# Install dependencies in a virtual environment to reduce final image size
+# Install pip dependencies
 COPY requirements.txt .
-RUN python -m venv /venv && \
-    /venv/bin/pip install --upgrade pip && \
-    /venv/bin/pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip && pip install --prefix=/install -r requirements.txt
 
-# ----------------------
-# Stage 2: Runtime Layer
-# ----------------------
-FROM python:alpine
+# Copy the full app codebase
+COPY . .
 
-# Set up environment
-ENV VIRTUAL_ENV=/venv
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+# --- Stage 2: Runner (lightweight) ---
+FROM python:3.11-slim
 
-# Make working dir match what GitHub Actions uses
-WORKDIR /github/workspace
+WORKDIR /app
 
-# Copy the virtual environment from the builder stage
-COPY --from=builder /venv /venv
+# Copy installed packages from builder
+COPY --from=builder /install /usr/local
+# Copy your app source
+COPY --from=builder /app /app
 
-# Set entrypoint to execute main.py inside /github/workspace
+# Entrypoint
 ENTRYPOINT ["python", "main.py"]
