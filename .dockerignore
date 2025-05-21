@@ -1,0 +1,11 @@
+# .dockerignore
+.git
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.DS_Store
+tests/
+README*
+LICENSE
