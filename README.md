@@ -90,8 +90,3 @@ No additional secrets or configuration are needed.
 
 MIT License. See [LICENSE](./LICENSE).
 
----
-
-## 🙋‍♂️ Author
-
-Abdullah Schahin
