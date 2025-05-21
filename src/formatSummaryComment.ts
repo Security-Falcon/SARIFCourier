@@ -1,4 +1,3 @@
-// src/formatSummaryComment.ts
 import path from 'path';
 import { Finding } from './extractFindings';
 
@@ -11,12 +10,15 @@ export function formatSummaryComment(findings: Finding[], sarifData?: any): stri
   const driver = sarifData?.runs?.[0]?.tool?.driver?.name || 'Unknown Tool';
   const legend = `
 <details>
+
 <summary><strong>Legend: Severity Levels</strong></summary>
+
 | Icon | Severity |
 |:------:|----------|
 | <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/critical.svg\" alt=\"error\" width=\"18\" /> | CRITICAL / HIGH   |
 | <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/medium.svg\" alt=\"warning\" width=\"18\" /> | MEDIUM |
 | <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/low.svg\" alt=\"note\" width=\"18\" /> | LOW    |
+
 </details>
 `;
   const header =
