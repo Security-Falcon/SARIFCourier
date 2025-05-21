@@ -12250,11 +12250,25 @@ function validateSarif(sarifContent) {
     const ajv = new ajv_1.default({ allErrors: true });
     (0, ajv_formats_1.default)(ajv);
     const validate = ajv.compile(schema);
+    const runs = sarifContent.runs;
+    // Defensive: ensure 'results' is always an array for schema validation
+    if (Array.isArray(runs)) {
+        runs.forEach((run, idx) => {
+            if (!('results' in run) || run.results == null) {
+                run.results = [];
+            }
+            else if (!Array.isArray(run.results)) {
+                console.warn(`⚠️: Run at index ${idx} has a 'results' property that is not an array. Forcing to empty array for validation.`);
+                run.results = [];
+            }
+        });
+    }
+    // Now validate against schema
     if (!validate(sarifContent)) {
-        throw new Error('Invalid SARIF file: ' + (((_b = (_a = validate.errors) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.message) || 'Unknown error'));
+        console.error('❌ Error: ' + (((_b = (_a = validate.errors) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.message) || 'Unknown error'));
+        process.exit(1);
     }
     console.log('✅: Successfully Validated Input against OASIS Schema.');
-    const runs = sarifContent.runs;
     if (!Array.isArray(runs)) {
         throw new Error('Invalid SARIF file: The "runs" property must be an array.');
     }
