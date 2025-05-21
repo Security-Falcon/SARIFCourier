@@ -12245,13 +12245,18 @@ const ajv_1 = __importDefault(__nccwpck_require__(2463));
 const ajv_formats_1 = __importDefault(__nccwpck_require__(2815));
 const utils_1 = __nccwpck_require__(1798);
 function validateSarif(sarifContent) {
-    var _a, _b;
+    var _a, _b, _c, _d, _e;
     const schema = (0, utils_1.loadSchema)();
     const ajv = new ajv_1.default({ allErrors: true });
     (0, ajv_formats_1.default)(ajv); // Add support for formats like "uri"
     const validate = ajv.compile(schema);
     if (!validate(sarifContent)) {
-        throw new Error('Invalid SARIF file: ' + (((_b = (_a = validate.errors) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.message) || 'Unknown error'));
+        if ((_c = (_b = (_a = validate.errors) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.message) === null || _c === void 0 ? void 0 : _c.includes('must be array')) {
+            throw new Error('Invalid SARIF file: The runs or results property must be an array.');
+        }
+        else {
+            throw new Error('Invalid SARIF file: ' + (((_e = (_d = validate.errors) === null || _d === void 0 ? void 0 : _d[0]) === null || _e === void 0 ? void 0 : _e.message) || 'Unknown error'));
+        }
     }
     console.log('✅: Successfully Validated Input against OASIS Schema.');
 }
