@@ -31,7 +31,12 @@ async function main() {
       fs.writeFileSync(outputMdPath, mdContent, 'utf-8');
       console.log(chalk.green(`✅: Markdown content was written to ${outputMdPath}`));
     } else {
-      await new GitHubPRCommenter().postComment(mdContent);
+      // Try to extract driver name for unique comment marker
+      let driverName = undefined;
+      if (sarifData && Array.isArray(sarifData.runs) && sarifData.runs[0]?.tool?.driver?.name) {
+        driverName = sarifData.runs[0].tool.driver.name;
+      }
+      await new GitHubPRCommenter().postComment(mdContent, driverName);
       console.log(chalk.green('✅: SARIF Report was posted as a PR comment on GitHub.'));
     }
   } catch (e: any) {
