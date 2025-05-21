@@ -1,6 +1,7 @@
 # Container image that runs your code
 FROM python:alpine
 
-COPY entrypoint.sh .
+COPY entrypoint.sh /
+RUN ["chmod", "+x", "/entrypoint.sh"]
 
-ENTRYPOINT ["sh", "entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]

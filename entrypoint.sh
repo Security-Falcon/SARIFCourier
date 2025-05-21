@@ -6,4 +6,7 @@ cp /app/sarif-schema-2.1.0.json .
 
 pip install -r requirements.txt
 pip install .
+
+ls -l 
+
 sc --sarif "$1"
