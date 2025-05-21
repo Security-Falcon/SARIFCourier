@@ -11,8 +11,6 @@ inputs:
     description: 'Path to the SARIF file to process.'
     required: true
     default: 'results.sarif'
-  
-
 
 outputs:
   result:
@@ -24,8 +22,3 @@ runs:
   args:
     - '--sarif'
     - '${{ inputs.sarif_file }}'
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    GITHUB_REPOSITORY: ${{ github.repository }}
-    GITHUB_REF: ${{ github.ref }}
-    GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
