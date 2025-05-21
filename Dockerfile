@@ -1,36 +1,30 @@
-# ------------ STAGE 1: Build environment ------------
-
+# ----------------------
+# Stage 1: Build Layer
+# ----------------------
 FROM python:alpine AS builder
 
 WORKDIR /app
 
-# Prevents Python from writing .pyc files
-ENV PYTHONDONTWRITEBYTECODE=1
-# Forces stdout/stderr to be unbuffered
-ENV PYTHONUNBUFFERED=1
-
-# Install build dependencies
+# Install dependencies in a virtual environment to reduce final image size
 COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install --user -r requirements.txt
+RUN python -m venv /venv && \
+    /venv/bin/pip install --upgrade pip && \
+    /venv/bin/pip install --no-cache-dir -r requirements.txt
 
-# ------------ STAGE 2: Runtime environment ------------
-
+# ----------------------
+# Stage 2: Runtime Layer
+# ----------------------
 FROM python:alpine
 
-WORKDIR /app
+# Set up environment
+ENV VIRTUAL_ENV=/venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# Make working dir match what GitHub Actions uses
+WORKDIR /github/workspace
 
-# Copy only needed files to final image
-COPY --from=builder /root/.local /root/.local
-COPY main.py .
-COPY sarif-schema-2.1.0.json .
+# Copy the virtual environment from the builder stage
+COPY --from=builder /venv /venv
 
-# Optionally copy assets like SVGs if used
-# COPY assets/ assets/
-
-ENV PATH=/root/.local/bin:$PATH
-
+# Set entrypoint to execute main.py inside /github/workspace
 ENTRYPOINT ["python", "main.py"]
