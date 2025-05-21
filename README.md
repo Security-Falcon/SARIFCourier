@@ -1,123 +1,97 @@
-# SARIFCourier
-Convert a SARIF Report to Markdown so it can be posted to Pull Request or Issues.
+# 🛡️ SARIF Courier 🛡️
 
-**SARIF2MD** is a lightweight, Python-based tool designed to convert SARIF (Static Analysis Results Interchange Format) security reports into clean, readable Markdown documents. With SARIF2MD, you can seamlessly transform complex SARIF reports into Markdown files suitable for GitHub Issues or Pull Request comments, making it easier to collaborate and address security concerns.
+![alt text](banner.png)
 
----
-
-## Features
-
-### Core Features:
-- **SARIF Validation**: Ensures that the provided SARIF file adheres to the SARIF v2.1.0 schema.
-- **Markdown Conversion**: Translates SARIF data into a well-structured Markdown format, highlighting tools, issues, severities, and locations.
-
-### Additional Features:
-- **Modular Architecture**: Cleanly separates validation, conversion, and utility functionalities for better maintainability.
-- **Companion GitHub Action**: Automates the process of generating and posting Markdown reports directly within your CI/CD pipeline.
+**Render SARIF Security Reports directly in your Pull Requests – no GitHub Advanced Security (GHAS) required!**
 
 ---
 
-## Installation
+## ✨ What is SARIF Courier?
 
-### Prerequisites:
-- Python 3.7 or later
-- `pip` (Python package manager)
+SARIF Courier is a GitHub Action that takes a SARIF (Static Analysis Results Interchange Format) report and posts a beautifully formatted summary as a comment on your Pull Requests. This enables you to surface security and static analysis findings in your PR workflow, even if you do not have access to GitHub Advanced Security (GHAS).
 
-### Steps:
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-repo/SARIF2MD.git
-   cd SARIF2MD
-   ```
-
-2. Install the required dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. (Optional) Install the tool as a package:
-   ```bash
-   pip install .
-   ```
+- **No GHAS required:** Works for all repositories, public or private.
+- **Instant feedback:** See security and code analysis results right in your PRs.
+- **Easy integration:** Just drop the action in your workflow and point it to your SARIF file.
 
 ---
 
-## Usage
+## 🚦 Usage
 
-### Command-Line Usage:
-Run the tool with the following command:
-
-```bash
-python main.py --input <path-to-sarif-file> --output <path-to-output-md>
-```
-
-- **`--input`**: Path to the SARIF file to be converted.
-- **`--output`**: Path where the generated Markdown file will be saved.
-
-Example:
-```bash
-python main.py --input example.sarif --output report.md
-```
-
-### Companion GitHub Action:
-SARIF2MD comes with a GitHub Action to automate Markdown report generation. Add the following step to your `.github/workflows` YAML configuration:
+Add the following step to your workflow after generating a SARIF report:
 
 ```yaml
-steps:
-  - name: Checkout repository
-    uses: actions/checkout@v3
+- name: Render SARIF in PR
+  uses: Abdullah-Schahin/SARIFCourier@v1
+  with:
+    sarif_file: path/to/your-report.sarif
+```
 
-  - name: Generate Markdown Report
-    uses: your-repo/SARIF2MD-action@v1
-    with:
-      sarif_file: path/to/input.sarif
-      output_md: path/to/output.md
+- `sarif_file` (**required**): Path to the SARIF file to process (relative to the workspace).
 
-  - name: Post Markdown as a comment
-    uses: github-script@v6
-    with:
-      script: |
-        github.rest.issues.createComment({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          issue_number: context.issue.number,
-          body: fs.readFileSync('path/to/output.md', 'utf8'),
-        });
+### Example Workflow
+
+```yaml
+name: Static Analysis
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run your static analysis tool
+        run: |
+          # ...run your tool, output SARIF to results.sarif...
+          # ...assuming exit code 1
+      - name: Render SARIF in PR
+        if: failure()
+        uses: Abdullah-Schahin/SARIFCourier@v1
+        with:
+          sarif_file: results.sarif
 ```
 
 ---
 
-## Project Structure
+## 🔑 Required Environment Variables & Permissions
 
-- `Converter.py`: Contains the logic for converting SARIF data into Markdown.
-- `validator.py`: Validates the SARIF file against the schema.
-- `utils.py`: Provides utility functions like loading the SARIF schema.
-- `main.py`: Entry point for the application.
+- **GITHUB_TOKEN**: Provided automatically by GitHub Actions. Used to post comments on PRs.
+  - **Permissions required:**
+    - `contents: write` (to create/update comments)
+    - `pull-requests: write` (recommended for private repos)
 
----
-
-## Example Output
-
-### Sample Markdown Report:
-
-<img width="674" alt="image" src="https://github.com/user-attachments/assets/b3f6548d-6312-4f34-8415-cbec517b11d7" />
-
+No additional secrets or configuration are needed.
 
 ---
 
-## Contributing
-
-We welcome contributions to SARIF2MD! Please open an issue or submit a pull request to help improve the tool.
-
----
-
-## License
-
-SARIF2MD is licensed under the [MIT License](LICENSE).
+> [!NOTE]
+> SARIF Courier automatically uses environment variables provided by GitHub Actions for repository, pull request number, and other context. You do not need to set these manually—only `GITHUB_TOKEN` is required for posting comments. See the [GitHub Actions documentation](https://docs.github.com/en/actions/learn-github-actions/environment-variables) for more details.
 
 ---
 
-## Acknowledgments
+## 📝 Inputs
 
-- [SARIF Specification](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html)
-- [SARIF Python Library](https://github.com/microsoft/sarif-python-om)
+| Name        | Description                        | Required | Default         |
+|-------------|------------------------------------|----------|-----------------|
+| sarif_file  | Path to the SARIF file to process. |   Yes    | results.sarif   |
+
+---
+
+## 💡 Why SARIF Courier?
+
+- **Universal:** Works with any SARIF-compliant tool (CodeQL, Semgrep, ESLint, etc).
+- **No vendor lock-in:** No need for GHAS or paid features.
+- **Fast feedback:** Developers see issues before merging.
+
+---
+
+## 🛠️ License
+
+MIT License. See [LICENSE](./LICENSE).
+
+---
+
+## 🙋‍♂️ Author
+
+Abdullah Schahin
