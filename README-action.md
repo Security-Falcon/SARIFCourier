@@ -65,6 +65,11 @@ No additional secrets or configuration are needed.
 
 ---
 
+> [!NOTE]
+> SARIF Courier automatically uses environment variables provided by GitHub Actions for repository, pull request number, and other context. You do not need to set these manually—only `GITHUB_TOKEN` is required for posting comments. See the [GitHub Actions documentation](https://docs.github.com/en/actions/learn-github-actions/environment-variables) for more details.
+
+---
+
 ## 📝 Inputs
 
 | Name        | Description                        | Required | Default         |
