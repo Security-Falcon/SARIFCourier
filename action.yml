@@ -1,20 +1,24 @@
 name: 'SARIF Courier'
-description: 'A GitHub Action to render SARIF Security Reports right into your Pull Requests. Without the need for GHAS suppurt!'
+description: 'A GitHub Action to render SARIF Security Reports right into your Pull Requests. Without the need for GHAS support!'
 author: 'Abdullah Schahin'
+
 branding:
   icon: 'shield'
   color: 'green'
-runs:
-  using: 'docker'
-  image: 'Dockerfile'
-  args:
-    - '--sarif'
-    - ${{ inputs.sarif_file }}
+
 inputs:
   sarif_file:
     description: 'Path to the SARIF file to process.'
     required: true
     default: 'results.sarif'
+
 outputs:
   result:
     description: 'Result of the SARIF processing.'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - '--sarif'
+    - '${{ inputs.sarif_file }}'

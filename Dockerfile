@@ -1,20 +1,18 @@
-# Use a slim Python base image
-FROM python:alpine as build
+# Use a lightweight Python base image
+FROM python:alpine
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Set working directory inside the container
 WORKDIR /app
 
-COPY requirements.txt ./
-COPY main.py ./
-COPY sarif-schema-2.1.0.json ./
-COPY setup.py ./
+# Copy project files into the container
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip install --no-cache-dir .  # Install your package, registering 'sc'
+COPY . .
 
-FROM gcr.io/distroless/python3-debian10
-
-USER nonroot
-
-COPY --from=build /app /app
-WORKDIR /app
-ENV PYTHONPATH /app
-CMD ["sc"]
+# Define the entry point to your script
+ENTRYPOINT ["python", "main.py"]

@@ -3,3 +3,4 @@ jsonschema
 markdown
 colorama
 termcolor
+requests
