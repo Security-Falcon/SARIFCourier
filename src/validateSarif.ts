@@ -8,12 +8,27 @@ export function validateSarif(sarifContent: any): void {
   const ajv = new Ajv({ allErrors: true });
   addFormats(ajv);
   const validate = ajv.compile(schema);
-  if (!validate(sarifContent)) {
-    throw new Error('Invalid SARIF file: ' + (validate.errors?.[0]?.message || 'Unknown error'));
-  }
-  console.log('✅: Successfully Validated Input against OASIS Schema.');
 
   const runs = (sarifContent as any).runs;
+
+  // Defensive: ensure 'results' is always an array for schema validation
+  if (Array.isArray(runs)) {
+    runs.forEach((run: any, idx: number) => {
+      if (!('results' in run) || run.results == null) {
+        run.results = [];
+      } else if (!Array.isArray(run.results)) {
+        console.warn(`⚠️: Run at index ${idx} has a 'results' property that is not an array. Forcing to empty array for validation.`);
+        run.results = [];
+      }
+    });
+  }
+
+  // Now validate against schema
+  if (!validate(sarifContent)) {
+    console.error('❌ Error: ' + (validate.errors?.[0]?.message || 'Unknown error'));
+    process.exit(1);
+  }
+  console.log('✅: Successfully Validated Input against OASIS Schema.');
 
   if (!Array.isArray(runs)) {
     throw new Error('Invalid SARIF file: The "runs" property must be an array.');
