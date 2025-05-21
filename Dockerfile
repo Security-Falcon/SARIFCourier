@@ -1,15 +1,17 @@
+# Container image that runs your code
 FROM python:3.11-slim
 
-# Set working dir
-WORKDIR /app
-
-# Copy your code
-COPY main.py /app/
-COPY requirements.txt /app/
-COPY sarif-schema-2.1.0.json /app/
+# Copy all necessary files
+COPY requirements.txt .
+COPY setup.py .
+COPY main.py .
+COPY sarif-schema-2.1.0.json .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Entrypoint: Python script with args passed from action.yml
+# (Optional) Install as a package if setup.py is needed
+# RUN python setup.py install
+
+# Set the entrypoint to your script, so GitHub Actions can pass arguments
 ENTRYPOINT ["python", "main.py"]
