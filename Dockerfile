@@ -12,4 +12,4 @@ COPY . .
 
 # Run the action
 #ENTRYPOINT ["python", "main.py"]
-ENTRYPOINT ["sh", "-c", "ls -la /github/workspace && python main.py"]
+ENTRYPOINT ["sh", "-c", "echo 'Files in container:' && find . && python code/main.py"]
