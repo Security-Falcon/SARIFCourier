@@ -44,7 +44,9 @@ jobs:
       - name: Run your static analysis tool
         run: |
           # ...run your tool, output SARIF to results.sarif...
+          # ...assuming exit code 1
       - name: Render SARIF in PR
+        if: failure()
         uses: Abdullah-Schahin/SARIFCourier@v1
         with:
           sarif_file: results.sarif
