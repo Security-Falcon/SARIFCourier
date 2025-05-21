@@ -1,15 +1,15 @@
 FROM python:3.11-slim
 
-# Set the working directory to where GitHub mounts the repository
-WORKDIR /github/workspace
+# Set working dir
+WORKDIR /app
 
-# Copy the necessary files into the container
-COPY requirements.txt .
+# Copy your code
+COPY main.py /app/
+COPY requirements.txt /app/
+COPY sarif-schema-2.1.0.json /app/
+
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all source code into the workspace directory
-COPY . .
-
-# Run the action
-#ENTRYPOINT ["python", "main.py"]
-ENTRYPOINT ["sh", "-c", "echo 'Files in container:' && find . && python code/main.py"]
+# Entrypoint: Python script with args passed from action.yml
+ENTRYPOINT ["python", "main.py"]
