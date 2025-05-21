@@ -12245,20 +12245,45 @@ const ajv_1 = __importDefault(__nccwpck_require__(2463));
 const ajv_formats_1 = __importDefault(__nccwpck_require__(2815));
 const utils_1 = __nccwpck_require__(1798);
 function validateSarif(sarifContent) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b;
     const schema = (0, utils_1.loadSchema)();
     const ajv = new ajv_1.default({ allErrors: true });
-    (0, ajv_formats_1.default)(ajv); // Add support for formats like "uri"
+    (0, ajv_formats_1.default)(ajv);
     const validate = ajv.compile(schema);
     if (!validate(sarifContent)) {
-        if ((_c = (_b = (_a = validate.errors) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.message) === null || _c === void 0 ? void 0 : _c.includes('must be array')) {
-            throw new Error('Invalid SARIF file: The runs or results property must be an array.');
-        }
-        else {
-            throw new Error('Invalid SARIF file: ' + (((_e = (_d = validate.errors) === null || _d === void 0 ? void 0 : _d[0]) === null || _e === void 0 ? void 0 : _e.message) || 'Unknown error'));
-        }
+        throw new Error('Invalid SARIF file: ' + (((_b = (_a = validate.errors) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.message) || 'Unknown error'));
     }
     console.log('✅: Successfully Validated Input against OASIS Schema.');
+    const runs = sarifContent.runs;
+    if (!Array.isArray(runs)) {
+        throw new Error('Invalid SARIF file: The "runs" property must be an array.');
+    }
+    if (runs.length === 0) {
+        console.log('ℹ️: SARIF file contains no runs. Exiting successfully.');
+        process.exit(0);
+    }
+    // Check for empty or null results in any run and exit successfully if all are empty or null
+    const allResultsEmptyOrNull = runs.every((run, idx) => {
+        if (!('results' in run)) {
+            console.warn(`⚠️: Run at index ${idx} is missing the 'results' property. Treating as empty.`);
+            return true;
+        }
+        if (run.results == null)
+            return true;
+        if (Array.isArray(run.results) && run.results.length === 0)
+            return true;
+        return false;
+    });
+    if (allResultsEmptyOrNull) {
+        console.log('ℹ️: SARIF file contains no results (all results are null, empty, or missing). Exiting successfully.');
+        process.exit(0);
+    }
+    // Optionally, warn if any run has results that are not an array
+    runs.forEach((run, idx) => {
+        if ('results' in run && run.results != null && !Array.isArray(run.results)) {
+            console.warn(`⚠️: Run at index ${idx} has a 'results' property that is not an array.`);
+        }
+    });
 }
 
 
