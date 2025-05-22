@@ -44,9 +44,9 @@ Add the following step to your workflow after generating a SARIF report:
 
 ```yaml
 - name: Render SARIF in PR
-  uses: Abdullah-Schahin/SARIFCourier@v1 #Preferred: Pin the action to a given commit sha!
+  uses: Abdullah-Schahin/SARIFCourier@v1
   with:
-    sarif_file: path/to/your-report.sarif # Path to the SARIF file to process (relative to the workspace)
+    sarif_file: path/to/your-report.sarif
 ```
 
 ### Output on PR
@@ -75,7 +75,7 @@ jobs:
           # ...assuming exit code 1
       - name: Render SARIF in PR
         if: failure()
-        uses: Abdullah-Schahin/SARIFCourier@v1 #Preferred: Pin the action to a given commit sha!
+        uses: Abdullah-Schahin/SARIFCourier@v1
         with:
           sarif_file: results.sarif
 ```
