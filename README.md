@@ -44,7 +44,7 @@ Add the following step to your workflow after generating a SARIF report:
 
 ```yaml
 - name: Render SARIF in PR
-  uses: Abdullah-Schahin/SARIFCourier@v1
+  uses: Security-Falcon/SARIFCourier@v1
   with:
     sarif_file: path/to/your-report.sarif
 ```
@@ -75,7 +75,7 @@ jobs:
           # ...assuming exit code 1
       - name: Render SARIF in PR
         if: failure()
-        uses: Abdullah-Schahin/SARIFCourier@v1
+        uses: Security-Falcon/SARIFCourier@v1
         with:
           sarif_file: results.sarif
 ```
