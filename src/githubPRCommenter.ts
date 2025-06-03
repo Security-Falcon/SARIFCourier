@@ -5,7 +5,6 @@ export class GitHubPRCommenter {
   private host: string;
   private repo: string;
   private ref: string;
-  private prNumber: string;
   private headers: Record<string, string>;
 
   constructor() {
@@ -13,26 +12,66 @@ export class GitHubPRCommenter {
     this.host = process.env.GITHUB_HOST || 'https://api.github.com';
     this.repo = process.env.GITHUB_REPOSITORY || '';
     this.ref = process.env.GITHUB_REF || '';
-    this.prNumber = process.env.GITHUB_PR_NUMBER || '';
     if (!this.token) throw new Error('GITHUB_TOKEN environment variable is required.');
     if (!this.repo) throw new Error('GITHUB_REPOSITORY environment variable is required.');
-    if (!this.prNumber) {
-      if (this.ref.startsWith('refs/pull/')) {
-        this.prNumber = this.ref.split('/')[2];
-      } else {
-        throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required.');
-      }
-    }
     this.headers = {
       Authorization: `token ${this.token}`,
       Accept: 'application/vnd.github.v3+json',
     };
   }
 
-  async postComment(body: string, driverName?: string): Promise<any> {
-    // If driverName is provided, try to find and update an existing comment for that driver
+  async postComment(body: string, driverName?: string, postTarget?: string): Promise<any> {
+    // Decide whether to post to PR or issue
+    let issueNumber: string | undefined = undefined;
+    if (postTarget === 'pr') {
+      // Extract PR number only when needed
+      let prNumber = process.env.GITHUB_PR_NUMBER || (this.ref.startsWith('refs/pull/') ? this.ref.split('/')[2] : undefined);
+      if (!prNumber) {
+        throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required when posting to a PR.');
+      }
+      issueNumber = prNumber;
+    } else if (postTarget === 'issue') {
+      // Try to find an open issue with a SARIF-Courier label or title, else create one
+      const issuesUrl = `${this.host}/repos/${this.repo}/issues?state=open&labels=sarif-courier`;
+      let issueId: string | undefined = undefined;
+      try {
+        const issuesResp = await axios.get(issuesUrl, { headers: this.headers });
+        if (issuesResp.status === 200 && Array.isArray(issuesResp.data)) {
+          const found = issuesResp.data.find((i: any) => i.title && i.title.includes('SARIFCourier'));
+          if (found) issueId = found.number;
+        }
+      } catch {}
+      if (!issueId) {
+        // Create a new issue
+        const createResp = await axios.post(`${this.host}/repos/${this.repo}/issues`, {
+          title: 'SAST Security Results 🚨',
+          body,
+          labels: ['sarif-courier']
+        }, { headers: this.headers });
+        if (createResp.status !== 201) {
+          throw new Error(`Failed to create issue: ${createResp.status} ${createResp.statusText}`);
+        }
+        issueId = createResp.data.number;
+      } else {
+        // Add a comment to the found issue
+        const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
+        const createResp = await axios.post(commentsUrl, { body }, { headers: this.headers });
+        if (createResp.status !== 201) {
+          throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
+        }
+        return createResp.data;
+      }
+      issueNumber = issueId;
+    } else {
+      // Default: PR
+      let prNumber = process.env.GITHUB_PR_NUMBER || (this.ref.startsWith('refs/pull/') ? this.ref.split('/')[2] : undefined);
+      if (!prNumber) {
+        throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required when posting to a PR.');
+      }
+      issueNumber = prNumber;
+    }
+    const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueNumber}/comments`;
     if (driverName) {
-      const commentsUrl = `${this.host}/repos/${this.repo}/issues/${this.prNumber}/comments`;
       const commentsResp = await axios.get(commentsUrl, { headers: this.headers });
       if (commentsResp.status === 200 && Array.isArray(commentsResp.data)) {
         const marker = `<!-- SARIFCourier:${driverName} -->`;
@@ -57,8 +96,7 @@ export class GitHubPRCommenter {
       }
     }
     // Fallback: just post a new comment
-    const url = `${this.host}/repos/${this.repo}/issues/${this.prNumber}/comments`;
-    const response = await axios.post(url, { body }, { headers: this.headers });
+    const response = await axios.post(commentsUrl, { body }, { headers: this.headers });
     if (response.status !== 201) {
       throw new Error(`Failed to post comment: ${response.status} ${response.statusText}`);
     }

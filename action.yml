@@ -11,6 +11,10 @@ inputs:
     description: 'Path to the SARIF file to process.'
     required: true
     default: 'results.sarif'
+  post_target:
+    description: 'Where to post the results: "pr" for Pull Request comment, "issue" for Issue comment. If not set, the action will auto-detect based on the GitHub context.'
+    required: false
+    default: ''
 
 outputs:
   result:
