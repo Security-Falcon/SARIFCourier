@@ -12266,6 +12266,14 @@ async function main() {
             if (sarifData && Array.isArray(sarifData.runs) && ((_c = (_b = (_a = sarifData.runs[0]) === null || _a === void 0 ? void 0 : _a.tool) === null || _b === void 0 ? void 0 : _b.driver) === null || _c === void 0 ? void 0 : _c.name)) {
                 driverName = sarifData.runs[0].tool.driver.name;
             }
+            // Only extract PR number if posting to PR
+            let prNumber = undefined;
+            if (postTarget === 'pr') {
+                prNumber = process.env.GITHUB_PR_NUMBER || (process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/pull/') ? process.env.GITHUB_REF.split('/')[2] : undefined);
+                if (!prNumber) {
+                    throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required when posting to a PR.');
+                }
+            }
             await new githubPRCommenter_1.GitHubPRCommenter().postComment(mdContent, driverName, postTarget);
             console.log(chalk_1.default.green(`✅: SARIF Report was posted as a ${postTarget === 'pr' ? 'PR' : 'Issue'} comment on GitHub.`));
         }
