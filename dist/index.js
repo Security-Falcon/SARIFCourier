@@ -12046,7 +12046,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.formatSummaryComment = formatSummaryComment;
-// src/formatSummaryComment.ts
 const path_1 = __importDefault(__nccwpck_require__(6928));
 function formatSummaryComment(findings, sarifData) {
     var _a, _b, _c, _d;
@@ -12098,7 +12097,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GitHubPRCommenter = void 0;
-// src/githubPRCommenter.ts
 const axios_1 = __importDefault(__nccwpck_require__(7269));
 class GitHubPRCommenter {
     constructor() {
@@ -12124,10 +12122,54 @@ class GitHubPRCommenter {
             Accept: 'application/vnd.github.v3+json',
         };
     }
-    async postComment(body, driverName) {
-        // If driverName is provided, try to find and update an existing comment for that driver
+    async postComment(body, driverName, postTarget) {
+        // Decide whether to post to PR or issue
+        let issueNumber = undefined;
+        if (postTarget === 'pr') {
+            issueNumber = this.prNumber;
+        }
+        else if (postTarget === 'issue') {
+            // Try to find an open issue with a SARIF-Courier label or title, else create one
+            const issuesUrl = `${this.host}/repos/${this.repo}/issues?state=open&labels=sarif-courier`;
+            let issueId = undefined;
+            try {
+                const issuesResp = await axios_1.default.get(issuesUrl, { headers: this.headers });
+                if (issuesResp.status === 200 && Array.isArray(issuesResp.data)) {
+                    const found = issuesResp.data.find((i) => i.title && i.title.includes('SARIFCourier'));
+                    if (found)
+                        issueId = found.number;
+                }
+            }
+            catch { }
+            if (!issueId) {
+                // Create a new issue
+                const createResp = await axios_1.default.post(`${this.host}/repos/${this.repo}/issues`, {
+                    title: 'SAST Security Results 🚨',
+                    body,
+                    labels: ['sarif-courier']
+                }, { headers: this.headers });
+                if (createResp.status !== 201) {
+                    throw new Error(`Failed to create issue: ${createResp.status} ${createResp.statusText}`);
+                }
+                issueId = createResp.data.number;
+            }
+            else {
+                // Add a comment to the found issue
+                const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
+                const createResp = await axios_1.default.post(commentsUrl, { body }, { headers: this.headers });
+                if (createResp.status !== 201) {
+                    throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
+                }
+                return createResp.data;
+            }
+            issueNumber = issueId;
+        }
+        else {
+            // Default: PR
+            issueNumber = this.prNumber;
+        }
+        const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueNumber}/comments`;
         if (driverName) {
-            const commentsUrl = `${this.host}/repos/${this.repo}/issues/${this.prNumber}/comments`;
             const commentsResp = await axios_1.default.get(commentsUrl, { headers: this.headers });
             if (commentsResp.status === 200 && Array.isArray(commentsResp.data)) {
                 const marker = `<!-- SARIFCourier:${driverName} -->`;
@@ -12153,8 +12195,7 @@ class GitHubPRCommenter {
             }
         }
         // Fallback: just post a new comment
-        const url = `${this.host}/repos/${this.repo}/issues/${this.prNumber}/comments`;
-        const response = await axios_1.default.post(url, { body }, { headers: this.headers });
+        const response = await axios_1.default.post(commentsUrl, { body }, { headers: this.headers });
         if (response.status !== 201) {
             throw new Error(`Failed to post comment: ${response.status} ${response.statusText}`);
         }
@@ -12193,6 +12234,7 @@ async function main() {
         .option('sarif', { type: 'string', demandOption: true, describe: 'Path to SARIF report' })
         .option('local', { type: 'boolean', default: false, describe: 'Output markdown summary locally instead of posting to GitHub' })
         .option('output-file-name', { alias: 'ofn', type: 'string', describe: 'Name of output Markdown file. Default: sarif-2-md-output.md' })
+        .option('post-target', { type: 'string', describe: 'Where to post the results: "pr" for Pull Request comment, "issue" for Issue comment. If not set, auto-detect.' })
         .help()
         .parseSync();
     try {
@@ -12207,13 +12249,25 @@ async function main() {
             console.log(chalk_1.default.green(`✅: Markdown content was written to ${outputMdPath}`));
         }
         else {
+            let postTarget = argv['post-target'];
+            if (!postTarget) {
+                // Auto-detect: PR if PR context, else issue
+                const eventName = process.env.GITHUB_EVENT_NAME;
+                const prNumber = process.env.GITHUB_PR_NUMBER || (process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/pull/') ? process.env.GITHUB_REF.split('/')[2] : undefined);
+                if (eventName === 'pull_request' || prNumber) {
+                    postTarget = 'pr';
+                }
+                else {
+                    postTarget = 'issue';
+                }
+            }
             // Try to extract driver name for unique comment marker
             let driverName = undefined;
             if (sarifData && Array.isArray(sarifData.runs) && ((_c = (_b = (_a = sarifData.runs[0]) === null || _a === void 0 ? void 0 : _a.tool) === null || _b === void 0 ? void 0 : _b.driver) === null || _c === void 0 ? void 0 : _c.name)) {
                 driverName = sarifData.runs[0].tool.driver.name;
             }
-            await new githubPRCommenter_1.GitHubPRCommenter().postComment(mdContent, driverName);
-            console.log(chalk_1.default.green('✅: SARIF Report was posted as a PR comment on GitHub.'));
+            await new githubPRCommenter_1.GitHubPRCommenter().postComment(mdContent, driverName, postTarget);
+            console.log(chalk_1.default.green(`✅: SARIF Report was posted as a ${postTarget === 'pr' ? 'PR' : 'Issue'} comment on GitHub.`));
         }
     }
     catch (e) {
@@ -12230,8 +12284,12 @@ async function runAction() {
         console.error('❌ Error: Missing required input: sarif_file');
         process.exit(1);
     }
+    const postTarget = process.env['INPUT_POST_TARGET'] || '';
     // Simulate CLI args for yargs
     process.argv.push('--sarif', sarifFile);
+    if (postTarget) {
+        process.argv.push('--post-target', postTarget);
+    }
     await main();
 }
 runAction();
