@@ -16,6 +16,7 @@ async function main() {
     .option('sarif', { type: 'string', demandOption: true, describe: 'Path to SARIF report' })
     .option('local', { type: 'boolean', default: false, describe: 'Output markdown summary locally instead of posting to GitHub' })
     .option('output-file-name', { alias: 'ofn', type: 'string', describe: 'Name of output Markdown file. Default: sarif-2-md-output.md' })
+    .option('post-target', { type: 'string', describe: 'Where to post the results: "pr" for Pull Request comment, "issue" for Issue comment. If not set, auto-detect.' })
     .help()
     .parseSync();
 
@@ -31,13 +32,24 @@ async function main() {
       fs.writeFileSync(outputMdPath, mdContent, 'utf-8');
       console.log(chalk.green(`✅: Markdown content was written to ${outputMdPath}`));
     } else {
+      let postTarget = argv['post-target'];
+      if (!postTarget) {
+        // Auto-detect: PR if PR context, else issue
+        const eventName = process.env.GITHUB_EVENT_NAME;
+        const prNumber = process.env.GITHUB_PR_NUMBER || (process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/pull/') ? process.env.GITHUB_REF.split('/')[2] : undefined);
+        if (eventName === 'pull_request' || prNumber) {
+          postTarget = 'pr';
+        } else {
+          postTarget = 'issue';
+        }
+      }
       // Try to extract driver name for unique comment marker
       let driverName = undefined;
       if (sarifData && Array.isArray(sarifData.runs) && sarifData.runs[0]?.tool?.driver?.name) {
         driverName = sarifData.runs[0].tool.driver.name;
       }
-      await new GitHubPRCommenter().postComment(mdContent, driverName);
-      console.log(chalk.green('✅: SARIF Report was posted as a PR comment on GitHub.'));
+      await new GitHubPRCommenter().postComment(mdContent, driverName, postTarget);
+      console.log(chalk.green(`✅: SARIF Report was posted as a ${postTarget === 'pr' ? 'PR' : 'Issue'} comment on GitHub.`));
     }
   } catch (e: any) {
     console.error(chalk.red(`❌ Error: ${e.message}`));
@@ -54,8 +66,12 @@ async function runAction() {
     console.error('❌ Error: Missing required input: sarif_file');
     process.exit(1);
   }
+  const postTarget = process.env['INPUT_POST_TARGET'] || '';
   // Simulate CLI args for yargs
   process.argv.push('--sarif', sarifFile);
+  if (postTarget) {
+    process.argv.push('--post-target', postTarget);
+  }
   await main();
 }
 
