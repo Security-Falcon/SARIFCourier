@@ -5,7 +5,6 @@ export class GitHubPRCommenter {
   private host: string;
   private repo: string;
   private ref: string;
-  private prNumber: string;
   private headers: Record<string, string>;
 
   constructor() {
@@ -13,16 +12,8 @@ export class GitHubPRCommenter {
     this.host = process.env.GITHUB_HOST || 'https://api.github.com';
     this.repo = process.env.GITHUB_REPOSITORY || '';
     this.ref = process.env.GITHUB_REF || '';
-    this.prNumber = process.env.GITHUB_PR_NUMBER || '';
     if (!this.token) throw new Error('GITHUB_TOKEN environment variable is required.');
     if (!this.repo) throw new Error('GITHUB_REPOSITORY environment variable is required.');
-    if (!this.prNumber) {
-      if (this.ref.startsWith('refs/pull/')) {
-        this.prNumber = this.ref.split('/')[2];
-      } else {
-        throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required.');
-      }
-    }
     this.headers = {
       Authorization: `token ${this.token}`,
       Accept: 'application/vnd.github.v3+json',
@@ -33,7 +24,12 @@ export class GitHubPRCommenter {
     // Decide whether to post to PR or issue
     let issueNumber: string | undefined = undefined;
     if (postTarget === 'pr') {
-      issueNumber = this.prNumber;
+      // Extract PR number only when needed
+      let prNumber = process.env.GITHUB_PR_NUMBER || (this.ref.startsWith('refs/pull/') ? this.ref.split('/')[2] : undefined);
+      if (!prNumber) {
+        throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required when posting to a PR.');
+      }
+      issueNumber = prNumber;
     } else if (postTarget === 'issue') {
       // Try to find an open issue with a SARIF-Courier label or title, else create one
       const issuesUrl = `${this.host}/repos/${this.repo}/issues?state=open&labels=sarif-courier`;
@@ -68,7 +64,11 @@ export class GitHubPRCommenter {
       issueNumber = issueId;
     } else {
       // Default: PR
-      issueNumber = this.prNumber;
+      let prNumber = process.env.GITHUB_PR_NUMBER || (this.ref.startsWith('refs/pull/') ? this.ref.split('/')[2] : undefined);
+      if (!prNumber) {
+        throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required when posting to a PR.');
+      }
+      issueNumber = prNumber;
     }
     const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueNumber}/comments`;
     if (driverName) {
