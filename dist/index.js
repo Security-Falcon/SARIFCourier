@@ -12087,7 +12087,7 @@ function formatSummaryComment(findings, sarifData) {
 
 /***/ }),
 
-/***/ 8258:
+/***/ 3060:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -12131,14 +12131,15 @@ class GitHubPRCommenter {
             try {
                 const issuesResp = await axios_1.default.get(issuesUrl, { headers: this.headers });
                 if (issuesResp.status === 200 && Array.isArray(issuesResp.data)) {
-                    const found = issuesResp.data.find((i) => i.title && i.title.includes('SARIFCourier'));
+                    // Match the actual title used for the issue
+                    const found = issuesResp.data.find((i) => i.title && i.title === 'SAST Security Results 🚨');
                     if (found)
                         issueId = found.number;
                 }
             }
             catch { }
             if (!issueId) {
-                // Create a new issue
+                // Create a new issue and return immediately (do not post a comment)
                 const createResp = await axios_1.default.post(`${this.host}/repos/${this.repo}/issues`, {
                     title: 'SAST Security Results 🚨',
                     body,
@@ -12147,7 +12148,7 @@ class GitHubPRCommenter {
                 if (createResp.status !== 201) {
                     throw new Error(`Failed to create issue: ${createResp.status} ${createResp.statusText}`);
                 }
-                issueId = createResp.data.number;
+                return createResp.data; // Do not post a comment if issue was just created
             }
             else {
                 // Add a comment to the found issue
@@ -12226,7 +12227,7 @@ const banner_1 = __nccwpck_require__(6265);
 const utils_1 = __nccwpck_require__(1798);
 const validateSarif_1 = __nccwpck_require__(828);
 const convert_1 = __nccwpck_require__(4568);
-const githubPRCommenter_1 = __nccwpck_require__(8258);
+const githubCommenter_1 = __nccwpck_require__(3060);
 async function main() {
     var _a, _b, _c;
     (0, banner_1.printBanner)();
@@ -12274,7 +12275,7 @@ async function main() {
                     throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required when posting to a PR.');
                 }
             }
-            await new githubPRCommenter_1.GitHubPRCommenter().postComment(mdContent, driverName, postTarget);
+            await new githubCommenter_1.GitHubPRCommenter().postComment(mdContent, driverName, postTarget);
             console.log(chalk_1.default.green(`✅: SARIF Report was posted as a ${postTarget === 'pr' ? 'PR' : 'Issue'} comment on GitHub.`));
         }
     }

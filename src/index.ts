@@ -8,7 +8,7 @@ import { printBanner } from './banner';
 import { loadJsonFile } from './utils';
 import { validateSarif } from './validateSarif';
 import { convert } from './convert';
-import { GitHubPRCommenter } from './githubPRCommenter';
+import { GitHubPRCommenter } from './githubCommenter';
 
 async function main() {
   printBanner();
