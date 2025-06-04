@@ -37,12 +37,13 @@ export class GitHubPRCommenter {
       try {
         const issuesResp = await axios.get(issuesUrl, { headers: this.headers });
         if (issuesResp.status === 200 && Array.isArray(issuesResp.data)) {
-          const found = issuesResp.data.find((i: any) => i.title && i.title.includes('SARIFCourier'));
+          // Match the actual title used for the issue
+          const found = issuesResp.data.find((i: any) => i.title && i.title === 'SAST Security Results 🚨');
           if (found) issueId = found.number;
         }
       } catch {}
       if (!issueId) {
-        // Create a new issue
+        // Create a new issue and return immediately (do not post a comment)
         const createResp = await axios.post(`${this.host}/repos/${this.repo}/issues`, {
           title: 'SAST Security Results 🚨',
           body,
@@ -51,7 +52,7 @@ export class GitHubPRCommenter {
         if (createResp.status !== 201) {
           throw new Error(`Failed to create issue: ${createResp.status} ${createResp.statusText}`);
         }
-        issueId = createResp.data.number;
+        return createResp.data; // Do not post a comment if issue was just created
       } else {
         // Add a comment to the found issue
         const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
